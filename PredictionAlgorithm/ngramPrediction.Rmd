@@ -1,0 +1,134 @@
+---
+title: "N-GramPrediction"
+author: "Patrick Barajas"
+date: "6/5/2017"
+output: html_document
+---
+
+```{r, results="hide", include = FALSE}
+library(tm); library(quanteda); library(stringi); library(tau); library(openNLP);
+library(textcat); library(filehash); library(scales); library(pryr); library(tidyr);
+```
+
+
+```{r}
+read_key = 0 
+
+if (read_key == 1) { 
+fileURL <- "http://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+download.file(fileURL, destfile = "Dataset.zip", method = "curl")
+unlink(fileURL)
+unzip("Dataset.zip")
+}
+```
+
+
+```{r, results="hide", include = FALSE}
+twitter <- readLines("en_US.twitter.txt")
+blogs <- readLines("en_US.blogs.txt")
+news <- readLines("en_US.news.txt")
+```
+
+```{r}
+lFile <- vector(mode = "character")
+t <- sample(twitter, 5000, replace = FALSE)
+lFile <- c(lFile, t)
+t <- sample(blogs, 5000, replace = FALSE)
+lFile <- c(lFile, t)
+t <- sample(news, 500, replace = FALSE)
+lFile <- c(lFile, t)
+
+rm(list = "twitter", "news", "blogs", "t")
+```
+
+## Clean data.
+The 'NPL' can be used to clean up our data.
+```{r}
+## Using TM create a copora of the lFile Data Set
+Lfile2 <- VCorpus(VectorSource(lFile))
+rm(list = "lFile")
+## first we remove all elements in our data set we dont need.
+Lfile2 <- tm_map(Lfile2, removeNumbers);
+Lfile2 <- tm_map(Lfile2, removePunctuation, preserve_intra_word_dashes = TRUE)
+Lfile2 <- tm_map(Lfile2, stripWhitespace)
+## we can then get make all words into lowercase to make future analysis easier.
+Lfile2 <- tm_map(Lfile2, content_transformer(tolower))
+Lfile2 <- tm_map(Lfile2, PlainTextDocument)
+
+```
+
+```{r}
+tokes2 <- function(x){
+        unlist(lapply(ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE) }
+
+tokes3 <- function(x){
+        unlist(lapply(ngrams(words(x), 3), paste, collapse = " "), use.names = FALSE) }
+```
+
+```{r}
+nfile2 <- suppressWarnings(TermDocumentMatrix(Lfile2, control = list(tokenize = tokes2)))
+nfile3 <- suppressWarnings(TermDocumentMatrix(Lfile2, control = list(tokenize = tokes3)))
+rm(list = "Lfile2")
+```
+
+## Create Data frames with desired n-grams:
+```{r}
+datFrame <- function(theCorpus){
+        m <- as.matrix(theCorpus)
+        v <- sort(rowSums(m), decreasing = TRUE)
+        d <- data.frame(word = names(v), freq = v)
+        return(d)
+        }
+```
+
+```{r}
+bigrams <- datFrame(nfile2)
+bigrams <- separate(bigrams, c("word1", "word2"), col = "word", sep = "_")
+
+trigrams <- datFrame(nfile3)
+trigrams <- separate(trigrams, c("word1", "word2", "word3"), col = "word", sep = "_")
+rm(list = c("nfile2", "nfile3"))
+```
+
+## Predict Bigrams
+```{r}
+library(stringr)
+predict2 <- function(A) {
+        if (A %in% bigrams$word1 == TRUE){
+                temp2 <- subset(bigrams, bigrams$word1 == A)
+                head(temp2)
+        }
+        else{
+                print("No Match In Database")
+                stop()
+        }
+}
+```
+
+## Predict Trigrams
+```{r}
+predict3 <- function(A, B) {
+        if (A %in% trigrams$word1 == TRUE){
+        temp3 <- subset(trigrams, trigrams$word1 == A)}
+        else {
+                print("No Match in Database")
+                stop()
+        }
+        stop()
+        if (B %in% trigrams$word2 == TRUE){ 
+        temp3 <- subset(temp3, temp3$word2 == B)
+        head(temp3)
+        }
+        else {
+                print("No match in Database")
+                stop()
+        }
+}
+```
+
+```{r}
+biGram <- predict2("womp"); print(biGram)
+triGram <- predict3(A = "you", B = "womp"); print(triGram)
+```
+
+

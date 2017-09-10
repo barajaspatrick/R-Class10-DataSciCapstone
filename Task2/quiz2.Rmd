@@ -1,0 +1,69 @@
+---
+title: "Ngram Prediction Algorithm"
+author: "Patrick Barajas"
+date: "6/3/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+## Quiz 2
+
+## Create Data frames with desigered n-grams:
+```{r}
+df2 <- function(theCorpus){
+        m <- as.matrix(theCorpus)
+        v <- sort(rowSums(m), decreasing = TRUE)
+        d <- data.frame(word = names(v), freq = v)
+        return(d)
+}
+
+
+df3 <- function(theCorpus){
+        m <- as.matrix(theCorpus)
+        v <- sort(rowSums(m), decreasing = TRUE)
+        d <- data.frame(word = names(v), freq = v)
+        return(d)
+}
+
+```
+
+## Run DF Function
+```{r}
+bigrams <- df2(nfile2)
+bigrams <- separate(bigrams, c("word1", "word2"), col = "word", sep = "_")
+trigrams <- df3(nfile3)
+trigrams <- separate(trigrams, c("word1", "word2", "word3"), col = "word", sep = "_")
+```
+
+## Predict Bigrams
+```{r}
+library(stringr)
+
+predict2 <- function(A) {
+        temp2 <- subset(bigrams, bigrams$word1 == A)
+        ##head(sort(table(temp2), decreasing = TRUE))
+        head(temp2)
+}
+
+```
+## Predict Trigrams
+```{r}
+
+predict3 <- function(A, B) {
+        temp3 <- subset(trigrams, trigrams$word1 == A)
+        temp3 <- subset(trigrams, trigrams$word2 == B)
+        head(temp3)
+        ##head(sort(table(temp2), decreasing = TRUE))
+}
+
+```
+
+
+## Word Prediction
+```{r}
+question1 <- predict2("of"); print(question1)
+question2 <- predict3(A = "one", B ="of"); print(question2)

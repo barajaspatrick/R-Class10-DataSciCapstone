@@ -1,0 +1,243 @@
+---
+title: "Task2"
+author: "Patrick Barajas"
+date: "5/9/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Assignment Goals:
+
+1) Does the link lead to an HTML page describing the exploratory analysis of the training data set?
+2) as the data scientist done basic summaries of the three files? Word counts, line counts and basic data tables?
+3)Has the data scientist made basic plots, such as histograms to illustrate features of the data?
+4)Was the report written in a brief, concise style, in a way that a non-data scientist manager could appreciate?
+
+```{r, results="hide", include = FALSE}
+library(tm)
+library(quanteda)
+library(stringi)
+library(tau)
+library(openNLP)
+library(textcat)
+library(filehash)
+library(scales)
+library(pryr)
+library(tidyr)
+```
+
+## Reading The Data Sets
+
+```{r, results="hide", include = FALSE}
+
+twitter <- readLines("en_US.twitter.txt")
+blogs <- readLines("en_US.blogs.txt")
+news <- readLines("en_US.news.txt")
+
+```
+
+## Basic Summaries of data sets.
+First we take a look at the size of each file.
+```{r}
+object_size(twitter); object_size(blogs); object_size(news)
+
+```
+Next we can take a look at the number of lines and get an idea of the type of data we are dealing with.
+```{r}
+length(twitter)
+head(twitter, 5)
+```
+We can do the same for the other two data sets.
+```{r}
+length(blogs)
+head(blogs, 5)
+```
+
+```{r}
+length(news)
+head(news, 5)
+```
+
+Lastly we can take a look at the number of words in each data set.
+```{r}
+sum(sapply(gregexpr("\\W+", twitter), length) + 1)
+sum(sapply(gregexpr("\\W+", blogs), length) + 1)
+sum(sapply(gregexpr("\\W+", news), length) + 1)
+```
+
+We can now create a small summery table with the information we learned.
+
+|        | Twitter  | Blogs    | News     |   |
+|--------|----------|----------|----------|---|
+| Size   | 316mb    | 261mb    | 262mb    |   |
+| nLines | 2360148  | 899288   | 1010242  |   |
+| nWords | 32793399 | 39120549 | 36721087 |   |
+
+### Creating a data subset from the three datasets.
+In order to reduce the amount of memory we need to use we can take random
+samples of lines from each of our three data sets and merge them into one
+larger data set.
+
+```{r}
+
+lFile <- vector(mode = "character")
+t <- sample(twitter, 3000, replace = FALSE)
+lFile <- c(lFile, t)
+t <- sample(blogs, 3000, replace = FALSE)
+lFile <- c(lFile, t)
+t <- sample(news, 3000, replace = FALSE)
+lFile <- c(lFile, t)
+
+```
+
+we can now remove the text files to clear up our ram
+```{r}
+rm(list = "twitter", "news", "blogs", "t")
+```
+
+## Clean data.
+
+The 'NPL' can be used to clean up our data.
+
+```{r}
+## Using TM create a copora of the lFile Data Set
+Lfile2 <- VCorpus(VectorSource(lFile))
+
+## first we remove all elements in our data set we dont need.
+Lfile2 <- tm_map(Lfile2, removeNumbers);
+Lfile2 <- tm_map(Lfile2, removePunctuation, preserve_intra_word_dashes = TRUE)
+Lfile2 <- tm_map(Lfile2, stripWhitespace)
+## we can then get make all words into lowercase to make future analysis easier.
+Lfile2 <- tm_map(Lfile2, content_transformer(tolower))
+Lfile3 <- tm_map(Lfile2, PlainTextDocument)
+
+rm(list = "lFile", "Lfile2")
+```
+
+
+## Creating n-grams
+Functions to help create our n-grams; they will be used in the upcomming section.
+```{r}
+
+tokes1 <- function(x){
+        unlist(lapply(ngrams(words(x), 1), paste, collapse = " "), use.names = FALSE) }
+
+tokes2 <- function(x){
+        unlist(lapply(ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE) }
+
+tokes3 <- function(x){
+        unlist(lapply(ngrams(words(x), 3), paste, collapse = " "), use.names = FALSE) }
+
+```
+
+## Run corpora through Tokenizer
+```{r}
+
+nfile1 <- suppressWarnings(TermDocumentMatrix(Lfile3, control = list(tokenize = tokes1)))
+nfile2 <- suppressWarnings(TermDocumentMatrix(Lfile3, control = list(tokenize = tokes2)))
+nfile3 <- suppressWarnings(TermDocumentMatrix(Lfile3, control = list(tokenize = tokes3)))
+
+```
+
+```{r}
+
+plotCorp <- function(theCorpus){
+        m <- as.matrix(theCorpus)
+        v <- sort(rowSums(m), decreasing = TRUE)
+        d <- data.frame(word = names(v), freq = v)
+        
+        barplot(d[1:10,]$freq, las = 2, names.arg = d[1:10, ]$word,
+                col = "lightblue", main = "Most frequent words",
+                ylab = "Word Frequencies")
+        return(d)
+}
+```
+## Most frequent words
+```{r}
+p1 <- plotCorp(nfile1)
+```
+
+## Most frequent 2-word n-grams
+```{r}
+p2 <- plotCorp(nfile2)
+```
+
+## most frequent 3-word n grams
+```{r}
+p3 <- plotCorp(nfile3)
+```
+
+# Summery
+In this assignment we downoaded and cleaned up three text files. Next summaries of
+the data files were created to determin n-gram frequencies. On the next assignment we will to create
+a predictive model based on the information we have learned so far.
+
+
+
+===============================================================================
+
+## Quiz 2
+
+## Create Data frames with desigered n-grams:
+```{r}
+df2 <- function(theCorpus){
+        m <- as.matrix(theCorpus)
+        v <- sort(rowSums(m), decreasing = TRUE)
+        d <- data.frame(word = names(v), freq = v)
+        return(d)
+}
+
+
+df3 <- function(theCorpus){
+        m <- as.matrix(theCorpus)
+        v <- sort(rowSums(m), decreasing = TRUE)
+        d <- data.frame(word = names(v), freq = v)
+        return(d)
+}
+
+```
+
+## Run DF Function
+```{r}
+bigrams <- df2(nfile2)
+bigrams <- separate(bigrams, c("word1", "word2"), col = "word", sep = "_")
+trigrams <- df3(nfile3)
+trigrams <- separate(trigrams, c("word1", "word2", "word3"), col = "word", sep = "_")
+```
+
+## Predict Bigrams
+```{r}
+library(stringr)
+
+predict2 <- function(A) {
+        temp2 <- subset(bigrams, bigrams$word1 == A)
+        ##head(sort(table(temp2), decreasing = TRUE))
+        head(temp2)
+}
+
+```
+## Predict Trigrams
+```{r}
+
+predict3 <- function(A, B) {
+        temp3 <- subset(trigrams, trigrams$word1 == A)
+        temp3 <- subset(temp3, temp3$word2 == B)
+        head(temp3)
+        ##head(sort(table(temp2), decreasing = TRUE))
+}
+
+```
+
+
+## Word Prediction
+```{r}
+question1 <- predict2("of"); print(question1)
+question2 <- predict3(A = "you", B = "must"); print(question2)
+```
+
+
+
+
+
